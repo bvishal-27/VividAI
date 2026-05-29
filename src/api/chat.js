@@ -1,5 +1,4 @@
-const BACKEND_URL = 'http://localhost:5002/api/chat'
-
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002/api/chat';
 export async function streamMessage(messages, onToken, onDone, onError) {
   try {
     const lastMessage = messages[messages.length - 1].content
