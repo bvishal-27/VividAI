@@ -1,33 +1,77 @@
-import { useState } from "react"
-import Sidebar from "./components/Sidebar"
-import ChatWindow from "./components/ChatWindow"
+import { useState, useCallback } from "react";
+import Sidebar from "./components/Sidebar";
+import ChatWindow from "./components/ChatWindow";
 
-function App() {
-  const [messages, setMessages] = useState([])
+let nextId = 1;
+const createSession = () => ({
+  id: nextId++,
+  title: "New Chat",
+  messages: [],
+});
 
-  function handleSend(text) {
-    const userMsg = { id: Date.now(), role: "user", text }
-    const loaderId = Date.now() + 1
+export default function App() {
+  const [sessions, setSessions] = useState([createSession()]);
+  const [activeSessionId, setActiveSessionId] = useState(1);
 
-    setMessages(prev => [...prev, userMsg, { id: loaderId, role: "ai", typing: true }])
+  const activeSession = sessions.find((s) => s.id === activeSessionId);
 
-    setTimeout(() => {
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === loaderId
-            ? { id: loaderId, role: "ai", text: "This is a placeholder reply. Real Gemini API comes on Day 3!" }
-            : m
-        )
-      )
-    }, 1000)
-  }
+  const handleNewChat = useCallback(() => {
+    const session = createSession();
+    setSessions((prev) => [session, ...prev]);
+    setActiveSessionId(session.id);
+  }, []);
+
+  const handleSend = useCallback(
+    (text) => {
+      const sessionId = activeSessionId;
+      const userMessage = { id: Date.now(), role: "user", content: text };
+
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id !== sessionId) return s;
+          const isFirst = s.messages.length === 0;
+          const title = isFirst
+            ? text.trim().slice(0, 30) + (text.trim().length > 30 ? "…" : "")
+            : s.title;
+          return {
+            ...s,
+            title,
+            messages: [...s.messages, userMessage],
+          };
+        })
+      );
+
+      // Fake AI reply after 1 second
+      setTimeout(() => {
+        const aiMessage = {
+          id: Date.now() + 1,
+          role: "assistant",
+          content: "This is a placeholder AI response. Real API coming in Day 4!",
+        };
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === sessionId
+              ? { ...s, messages: [...s.messages, aiMessage] }
+              : s
+          )
+        );
+      }, 1000);
+    },
+    [activeSessionId]
+  );
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white">
-      <Sidebar />
-      <ChatWindow messages={messages} onSend={handleSend} />
+    <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
+      <Sidebar
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onSelectSession={setActiveSessionId}
+        onNewChat={handleNewChat}
+      />
+      <ChatWindow
+        messages={activeSession?.messages ?? []}
+        onSend={handleSend}
+      />
     </div>
-  )
+  );
 }
-
-export default App

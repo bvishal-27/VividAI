@@ -1,46 +1,51 @@
-import { useState } from "react"
+import { useState } from "react";
 
-function ChatInput({ onSend }) {
-  const [message, setMessage] = useState("")
-
-  function handleSend() {
-    const trimmed = message.trim()
-    if (!trimmed) return
-    onSend(trimmed)
-    setMessage("")
-  }
-
-  function handleKeyDown(e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
-
+function IconSend() {
   return (
-    <div className="px-4 py-4 border-t border-gray-700">
-      <div className="flex items-end gap-2 bg-gray-800 rounded-2xl px-4 py-2">
-        <textarea
-          rows={1}
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Message VividAI..."
-          className="flex-1 bg-transparent resize-none outline-none text-sm text-white placeholder-gray-500 py-1.5 max-h-32"
-        />
-        <button
-          onClick={handleSend}
-          disabled={!message.trim()}
-          className="mb-1 p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
-          </svg>
-        </button>
-      </div>
-      <p className="text-center text-xs text-gray-600 mt-2">VividAI can make mistakes.</p>
-    </div>
-  )
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.405Z" />
+    </svg>
+  );
 }
 
-export default ChatInput
+export default function ChatInput({ onSend }) {
+  const [value, setValue] = useState("");
+
+  const submit = () => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    onSend(trimmed);
+    setValue("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submit();
+    }
+  };
+
+  return (
+    <div className="flex items-end gap-2 bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 focus-within:border-violet-500 transition-colors">
+      <textarea
+        className="flex-1 bg-transparent resize-none text-sm text-gray-100 placeholder-gray-600 outline-none max-h-36 leading-relaxed py-0.5"
+        placeholder="Message VividAI…"
+        rows={1}
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+          e.target.style.height = "auto";
+          e.target.style.height = e.target.scrollHeight + "px";
+        }}
+        onKeyDown={handleKeyDown}
+      />
+      <button
+        onClick={submit}
+        disabled={!value.trim()}
+        className="p-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-colors"
+      >
+        <IconSend />
+      </button>
+    </div>
+  );
+}
