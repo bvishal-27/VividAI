@@ -1,12 +1,14 @@
 import { useState, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
 import ChatWindow from "./components/ChatWindow";
+import { streamMessage } from "./api/chat";
 
 let nextId = 1;
 const createSession = () => ({
   id: nextId++,
   title: "New Chat",
   messages: [],
+  isStreaming: false,
 });
 
 export default function App() {
@@ -24,8 +26,19 @@ export default function App() {
   const handleSend = useCallback(
     (text) => {
       const sessionId = activeSessionId;
-      const userMessage = { id: Date.now(), role: "user", content: text };
+      const prevMessages = activeSession?.messages ?? [];
 
+      const userMessage = { id: Date.now(), role: "user", content: text };
+      const aiMessageId = Date.now() + 1;
+      const aiMessage = {
+        id: aiMessageId,
+        role: "assistant",
+        content: "",
+        streaming: true,
+        isError: false,
+      };
+
+      // Add user + empty AI bubble, set isStreaming, auto-title
       setSessions((prev) =>
         prev.map((s) => {
           if (s.id !== sessionId) return s;
@@ -36,28 +49,74 @@ export default function App() {
           return {
             ...s,
             title,
-            messages: [...s.messages, userMessage],
+            isStreaming: true,
+            messages: [...s.messages, userMessage, aiMessage],
           };
         })
       );
 
-      // Fake AI reply after 1 second
-      setTimeout(() => {
-        const aiMessage = {
-          id: Date.now() + 1,
-          role: "assistant",
-          content: "This is a placeholder AI response. Real API coming in Day 4!",
-        };
-        setSessions((prev) =>
-          prev.map((s) =>
-            s.id === sessionId
-              ? { ...s, messages: [...s.messages, aiMessage] }
-              : s
-          )
-        );
-      }, 1000);
+      // Build history for Gemini (prev messages + new user message)
+      const apiMessages = [
+        ...prevMessages.filter((m) => m.content && !m.isError),
+        { role: "user", content: text },
+      ];
+
+      streamMessage(
+        apiMessages,
+
+        // onToken — grow the bubble
+        (token) => {
+          setSessions((prev) =>
+            prev.map((s) => {
+              if (s.id !== sessionId) return s;
+              return {
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === aiMessageId
+                    ? { ...m, content: m.content + token }
+                    : m
+                ),
+              };
+            })
+          );
+        },
+
+        // onDone — unlock input
+        () => {
+          setSessions((prev) =>
+            prev.map((s) => {
+              if (s.id !== sessionId) return s;
+              return {
+                ...s,
+                isStreaming: false,
+                messages: s.messages.map((m) =>
+                  m.id === aiMessageId ? { ...m, streaming: false } : m
+                ),
+              };
+            })
+          );
+        },
+
+        // onError — red bubble, unlock input
+        (errorMsg) => {
+          setSessions((prev) =>
+            prev.map((s) => {
+              if (s.id !== sessionId) return s;
+              return {
+                ...s,
+                isStreaming: false,
+                messages: s.messages.map((m) =>
+                  m.id === aiMessageId
+                    ? { ...m, content: `⚠ ${errorMsg}`, streaming: false, isError: true }
+                    : m
+                ),
+              };
+            })
+          );
+        }
+      );
     },
-    [activeSessionId]
+    [activeSessionId, activeSession]
   );
 
   return (
@@ -70,6 +129,7 @@ export default function App() {
       />
       <ChatWindow
         messages={activeSession?.messages ?? []}
+        isStreaming={activeSession?.isStreaming ?? false}
         onSend={handleSend}
       />
     </div>
