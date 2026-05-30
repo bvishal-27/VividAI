@@ -34,7 +34,7 @@ function IconMoon() {
   );
 }
 
-export default function Sidebar({ sessions, activeSessionId, onSelectSession, onNewChat, isOpen, onClose }) {
+export default function Sidebar({ sessions, activeSessionId, onSelectSession, onNewChat, onDeleteChat, isOpen, onClose }) {
   const activeRef = useRef(null);
   const { isDark, toggleTheme } = useTheme();
 
@@ -100,17 +100,26 @@ export default function Sidebar({ sessions, activeSessionId, onSelectSession, on
             {sessions.map((session) => {
               const isActive = session.id === activeSessionId;
               return (
-                <button key={session.id} ref={isActive ? activeRef : null}
-                  onClick={() => handleSelect(session.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-all duration-150
+                <div key={session.id} ref={isActive ? activeRef : null}
+                  className={`group w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150
                     ${isActive
                       ? isDark ? "bg-gray-700 text-white font-medium" : "bg-gray-200 text-gray-900 font-medium"
                       : isDark ? "text-gray-400 hover:bg-gray-800 hover:text-gray-200" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                     }`}>
-                  <IconChat />
-                  <span className="truncate">{session.title}</span>
-                  {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />}
-                </button>
+                  <button className="flex items-center gap-2.5 flex-1 text-left min-w-0"
+                    onClick={() => handleSelect(session.id)}>
+                    <IconChat />
+                    <span className="truncate">{session.title}</span>
+                  </button>
+                  {/* Delete button — shows on hover */}
+                  <button onClick={(e) => { e.stopPropagation(); onDeleteChat(session.id); }}
+                    className={`shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded transition-all
+                      ${isDark ? "hover:bg-gray-600 text-gray-400 hover:text-red-400" : "hover:bg-gray-300 text-gray-400 hover:text-red-500"}`}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               );
             })}
           </nav>
