@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTheme } from "../context/ThemeContext";
 
 function IconSend() {
   return (
@@ -19,6 +20,7 @@ function IconSpinner() {
 
 export default function ChatInput({ onSend, disabled = false }) {
   const [value, setValue] = useState("");
+  const { isDark } = useTheme();
 
   const submit = () => {
     const trimmed = value.trim();
@@ -35,12 +37,15 @@ export default function ChatInput({ onSend, disabled = false }) {
   };
 
   return (
-    <div className={`flex items-end gap-2 bg-gray-900 border rounded-xl px-3 py-2 transition-colors
-      ${disabled ? "border-gray-800 opacity-60" : "border-gray-700 focus-within:border-violet-500"}`}
-    >
+    <div className={`flex items-end gap-2 border rounded-xl px-3 py-2 transition-colors duration-200
+      ${isDark
+        ? disabled ? "bg-gray-900 border-gray-800 opacity-60" : "bg-gray-900 border-gray-700 focus-within:border-violet-500"
+        : disabled ? "bg-gray-100 border-gray-200 opacity-60" : "bg-gray-100 border-gray-300 focus-within:border-violet-400"
+      }`}>
       <textarea
-        className="flex-1 bg-transparent resize-none text-sm text-gray-100 placeholder-gray-600 outline-none max-h-36 leading-relaxed py-0.5"
-        placeholder={disabled ? "Gemini is thinking…" : "Message VividAI…"}
+        className={`flex-1 bg-transparent resize-none text-sm outline-none max-h-36 leading-relaxed py-0.5
+          ${isDark ? "text-gray-100 placeholder-gray-600" : "text-gray-900 placeholder-gray-400"}`}
+        placeholder={disabled ? "VividAI is thinking…" : "Message VividAI…"}
         rows={1}
         value={value}
         disabled={disabled}
@@ -51,11 +56,8 @@ export default function ChatInput({ onSend, disabled = false }) {
         }}
         onKeyDown={handleKeyDown}
       />
-      <button
-        onClick={submit}
-        disabled={disabled || !value.trim()}
-        className="p-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-colors"
-      >
+      <button onClick={submit} disabled={disabled || !value.trim()}
+        className="p-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-colors">
         {disabled ? <IconSpinner /> : <IconSend />}
       </button>
     </div>

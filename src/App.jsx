@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
 import ChatWindow from "./components/ChatWindow";
-import { streamMessage } from "./api/chat";
+import { useTheme } from "./context/ThemeContext";
 
 let nextId = 1;
 const createSession = () => ({
@@ -14,6 +14,7 @@ const createSession = () => ({
 export default function App() {
   const [sessions, setSessions] = useState([createSession()]);
   const [activeSessionId, setActiveSessionId] = useState(1);
+  const { isDark } = useTheme();
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
 
@@ -24,21 +25,14 @@ export default function App() {
   }, []);
 
   const handleSend = useCallback(
-    (text) => {
+    async (text) => {
       const sessionId = activeSessionId;
       const prevMessages = activeSession?.messages ?? [];
 
       const userMessage = { id: Date.now(), role: "user", content: text };
       const aiMessageId = Date.now() + 1;
-      const aiMessage = {
-        id: aiMessageId,
-        role: "assistant",
-        content: "",
-        streaming: true,
-        isError: false,
-      };
+      const aiMessage = { id: aiMessageId, role: "assistant", content: "", streaming: true, isError: false };
 
-      // Add user + empty AI bubble, set isStreaming, auto-title
       setSessions((prev) =>
         prev.map((s) => {
           if (s.id !== sessionId) return s;
@@ -46,81 +40,94 @@ export default function App() {
           const title = isFirst
             ? text.trim().slice(0, 30) + (text.trim().length > 30 ? "…" : "")
             : s.title;
-          return {
-            ...s,
-            title,
-            isStreaming: true,
-            messages: [...s.messages, userMessage, aiMessage],
-          };
+          return { ...s, title, isStreaming: true, messages: [...s.messages, userMessage, aiMessage] };
         })
       );
 
-      // Build history for Gemini (prev messages + new user message)
-      const apiMessages = [
-        ...prevMessages.filter((m) => m.content && !m.isError),
-        { role: "user", content: text },
-      ];
+      try {
+        const apiMessages = [
+          ...prevMessages.filter((m) => m.content && !m.isError),
+          { role: "user", content: text },
+        ];
 
-      streamMessage(
-        apiMessages,
+        const response = await fetch("http://localhost:5002/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: apiMessages }),
+        });
 
-        // onToken — grow the bubble
-        (token) => {
-          setSessions((prev) =>
-            prev.map((s) => {
-              if (s.id !== sessionId) return s;
-              return {
-                ...s,
-                messages: s.messages.map((m) =>
-                  m.id === aiMessageId
-                    ? { ...m, content: m.content + token }
-                    : m
-                ),
-              };
-            })
-          );
-        },
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
-        // onDone — unlock input
-        () => {
-          setSessions((prev) =>
-            prev.map((s) => {
-              if (s.id !== sessionId) return s;
-              return {
-                ...s,
-                isStreaming: false,
-                messages: s.messages.map((m) =>
-                  m.id === aiMessageId ? { ...m, streaming: false } : m
-                ),
-              };
-            })
-          );
-        },
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-        // onError — red bubble, unlock input
-        (errorMsg) => {
-          setSessions((prev) =>
-            prev.map((s) => {
-              if (s.id !== sessionId) return s;
-              return {
-                ...s,
-                isStreaming: false,
-                messages: s.messages.map((m) =>
-                  m.id === aiMessageId
-                    ? { ...m, content: `⚠ ${errorMsg}`, streaming: false, isError: true }
-                    : m
-                ),
-              };
-            })
-          );
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.token) {
+                setSessions((prev) =>
+                  prev.map((s) => {
+                    if (s.id !== sessionId) return s;
+                    return {
+                      ...s,
+                      messages: s.messages.map((m) =>
+                        m.id === aiMessageId ? { ...m, content: m.content + parsed.token } : m
+                      ),
+                    };
+                  })
+                );
+              }
+            } catch {}
+          }
         }
-      );
+
+        setSessions((prev) =>
+          prev.map((s) => {
+            if (s.id !== sessionId) return s;
+            return {
+              ...s,
+              isStreaming: false,
+              messages: s.messages.map((m) =>
+                m.id === aiMessageId ? { ...m, streaming: false } : m
+              ),
+            };
+          })
+        );
+      } catch (err) {
+        setSessions((prev) =>
+          prev.map((s) => {
+            if (s.id !== sessionId) return s;
+            return {
+              ...s,
+              isStreaming: false,
+              messages: s.messages.map((m) =>
+                m.id === aiMessageId
+                  ? { ...m, content: `⚠ ${err.message}`, streaming: false, isError: true }
+                  : m
+              ),
+            };
+          })
+        );
+      }
     },
     [activeSessionId, activeSession]
   );
 
   return (
-    <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
+    <div className={`flex h-screen overflow-hidden transition-colors duration-200
+      ${isDark ? "bg-gray-950 text-white" : "bg-white text-gray-900"}`}>
       <Sidebar
         sessions={sessions}
         activeSessionId={activeSessionId}
