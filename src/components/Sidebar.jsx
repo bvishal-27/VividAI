@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
 
-function IconNewChat({ isDark }) {
+function IconNewChat() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
@@ -33,7 +33,7 @@ function IconMoon() {
   );
 }
 
-export default function Sidebar({ sessions, activeSessionId, onSelectSession, onNewChat }) {
+export default function Sidebar({ sessions, activeSessionId, onSelectSession, onNewChat, isOpen, onClose }) {
   const activeRef = useRef(null);
   const { isDark, toggleTheme } = useTheme();
 
@@ -41,73 +41,94 @@ export default function Sidebar({ sessions, activeSessionId, onSelectSession, on
     activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [activeSessionId]);
 
+  const handleSelect = (id) => {
+    onSelectSession(id);
+    if (window.innerWidth < 768) onClose();
+  };
+
+  const handleNewChat = () => {
+    onNewChat();
+    if (window.innerWidth < 768) onClose();
+  };
+
   return (
-    <aside className={`w-64 shrink-0 flex flex-col border-r transition-colors duration-200
-      ${isDark ? "bg-gray-900 border-gray-800" : "bg-gray-50 border-gray-200"}`}>
+    <>
+      {/* Mobile backdrop only */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-20 md:hidden"
+          onClick={onClose} />
+      )}
 
-      {/* Logo */}
-      <div className="px-5 pt-5 pb-4 select-none">
-        <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
-          VividAI
-        </span>
-      </div>
+      {/* Sidebar — slides on mobile, collapses width on desktop */}
+      <aside className={`
+        fixed md:relative inset-y-0 left-0 z-30
+        flex flex-col border-r shrink-0
+        transition-all duration-300 ease-in-out overflow-hidden
+        ${isOpen ? "w-64 translate-x-0" : "w-0 md:w-0 -translate-x-full md:translate-x-0"}
+        ${isDark ? "bg-gray-900 border-gray-800" : "bg-gray-50 border-gray-200"}
+      `}>
+        <div className="w-64 flex flex-col h-full">
 
-      {/* New Chat */}
-      <div className="px-3 pb-3">
-        <button onClick={onNewChat}
-          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium
-            border transition-all duration-150
-            ${isDark
-              ? "text-gray-300 hover:text-white hover:bg-gray-700 border-gray-700 hover:border-gray-600"
-              : "text-gray-600 hover:text-gray-900 hover:bg-gray-200 border-gray-300 hover:border-gray-400"
-            }`}>
-          <IconNewChat />
-          <span>New chat</span>
-        </button>
-      </div>
+          {/* Logo */}
+          <div className="px-5 pt-5 pb-4 select-none">
+            <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+              VividAI
+            </span>
+          </div>
 
-      <div className="px-4 py-1">
-        <p className={`text-[10px] uppercase tracking-widest font-semibold
-          ${isDark ? "text-gray-600" : "text-gray-400"}`}>Recent</p>
-      </div>
-
-      {/* Session list */}
-      <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
-        {sessions.map((session) => {
-          const isActive = session.id === activeSessionId;
-          return (
-            <button key={session.id} ref={isActive ? activeRef : null}
-              onClick={() => onSelectSession(session.id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left
-                transition-all duration-150 cursor-pointer
-                ${isActive
-                  ? isDark ? "bg-gray-700 text-white font-medium" : "bg-gray-200 text-gray-900 font-medium"
-                  : isDark ? "text-gray-400 hover:bg-gray-800 hover:text-gray-200" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+          {/* New Chat */}
+          <div className="px-3 pb-3">
+            <button onClick={handleNewChat}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium border transition-all duration-150
+                ${isDark
+                  ? "text-gray-300 hover:text-white hover:bg-gray-700 border-gray-700"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-200 border-gray-300"
                 }`}>
-              <IconChat />
-              <span className="truncate">{session.title}</span>
-              {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />}
+              <IconNewChat />
+              <span>New chat</span>
             </button>
-          );
-        })}
-      </nav>
+          </div>
 
-      {/* Footer — theme toggle */}
-      <div className={`px-3 py-3 border-t ${isDark ? "border-gray-800" : "border-gray-200"}`}>
-        <button onClick={toggleTheme}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
-            transition-all duration-150
-            ${isDark
-              ? "text-gray-400 hover:text-white hover:bg-gray-800"
-              : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"
-            }`}>
-          {isDark ? <IconSun /> : <IconMoon />}
-          <span>{isDark ? "Light mode" : "Dark mode"}</span>
-        </button>
-        <p className={`text-[10px] text-center mt-2 ${isDark ? "text-gray-700" : "text-gray-400"}`}>
-          VividAI · Day 5
-        </p>
-      </div>
-    </aside>
+          <div className="px-4 py-1">
+            <p className={`text-[10px] uppercase tracking-widest font-semibold
+              ${isDark ? "text-gray-600" : "text-gray-400"}`}>Recent</p>
+          </div>
+
+          {/* Session list */}
+          <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
+            {sessions.map((session) => {
+              const isActive = session.id === activeSessionId;
+              return (
+                <button key={session.id} ref={isActive ? activeRef : null}
+                  onClick={() => handleSelect(session.id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-all duration-150
+                    ${isActive
+                      ? isDark ? "bg-gray-700 text-white font-medium" : "bg-gray-200 text-gray-900 font-medium"
+                      : isDark ? "text-gray-400 hover:bg-gray-800 hover:text-gray-200" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                    }`}>
+                  <IconChat />
+                  <span className="truncate">{session.title}</span>
+                  {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Footer */}
+          <div className={`px-3 py-3 border-t ${isDark ? "border-gray-800" : "border-gray-200"}`}>
+            <button onClick={toggleTheme}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150
+                ${isDark ? "text-gray-400 hover:text-white hover:bg-gray-800" : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"}`}>
+              {isDark ? <IconSun /> : <IconMoon />}
+              <span>{isDark ? "Light mode" : "Dark mode"}</span>
+            </button>
+            <p className={`text-[10px] text-center mt-2 ${isDark ? "text-gray-700" : "text-gray-400"}`}>
+              VividAI · Day 6
+            </p>
+          </div>
+
+        </div>
+      </aside>
+    </>
   );
 }
