@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import { UserButton } from "@clerk/clerk-react";
 import { useTheme } from "../context/ThemeContext";
 
 function IconNewChat() {
@@ -122,8 +123,12 @@ export default function Sidebar({ sessions, activeSessionId, onSelectSession, on
               {isDark ? <IconSun /> : <IconMoon />}
               <span>{isDark ? "Light mode" : "Dark mode"}</span>
             </button>
-            <p className={`text-[10px] text-center mt-2 ${isDark ? "text-gray-700" : "text-gray-400"}`}>
-              VividAI · Day 6
+            <div className="flex items-center gap-2.5 px-3 py-2 mt-1">
+              <UserButton afterSignOutUrl="/" />
+              <span className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>Account</span>
+            </div>
+            <p className={`text-[10px] text-center mt-1 ${isDark ? "text-gray-700" : "text-gray-400"}`}>
+              VividAI · Day 8
             </p>
           </div>
 
