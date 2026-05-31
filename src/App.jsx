@@ -16,6 +16,11 @@ async function detectImageIntent(text) {
   } catch { return false; }
 }
 
+function isPPTRequest(text) {
+  return /\b(create|make|generate|build|prepare|design)\b.*(ppt|pptx|powerpoint|presentation|slides)\b/i.test(text) ||
+    /\b(ppt|powerpoint|presentation|slides)\b.*(on|about|for|of)\b/i.test(text);
+}
+
 function AppContent() {
   const { user } = useUser();
   const userId = user?.id;
@@ -132,6 +137,47 @@ function AppContent() {
     ));
 
     const isImage = await detectImageIntent(text);
+
+    // ── PPT request ────────────────────────────────────
+    if (isPPTRequest(text)) {
+      const pptMsgId = Date.now() + 1;
+      const topic = text.replace(/\b(create|make|generate|build|prepare|design)\b.*(ppt|pptx|powerpoint|presentation|slides)\b.*?(on|about|for)?\s*/i, "").trim() || text;
+
+      setSessions((prev) => prev.map((s) =>
+        s.id !== sessionId ? s : {
+          ...s, isStreaming: true,
+          messages: [...s.messages, { id: pptMsgId, role: "assistant", type: "ppt-loading", content: `⏳ Creating PPT on "${topic}"...` }]
+        }
+      ));
+
+      try {
+        const res = await fetch(`${API}/generate-ppt`, {
+          method: "POST", headers,
+          body: JSON.stringify({ topic }),
+        });
+        if (!res.ok) throw new Error("PPT generation failed");
+        const data = await res.json();
+
+        setSessions((prev) => prev.map((s) =>
+          s.id !== sessionId ? s : {
+            ...s, isStreaming: false,
+            messages: s.messages.map((m) =>
+              m.id === pptMsgId ? { ...m, type: "ppt", slides: data.slides, filename: data.filename, fileData: data.fileData } : m
+            )
+          }
+        ));
+      } catch (err) {
+        setSessions((prev) => prev.map((s) =>
+          s.id !== sessionId ? s : {
+            ...s, isStreaming: false,
+            messages: s.messages.map((m) =>
+              m.id === pptMsgId ? { ...m, type: "text", content: `⚠ PPT failed: ${err.message}`, isError: true } : m
+            )
+          }
+        ));
+      }
+      return;
+    }
 
     if (isImage) {
       const imgId = Date.now() + 1;

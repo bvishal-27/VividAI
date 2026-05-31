@@ -6,6 +6,9 @@ import imageRoutes from "./routes/imageRoutes.js";
 import intentRoutes from "./routes/intentRoutes.js";
 import { connectDB } from "./db.js";
 import historyRoutes from "./routes/historyRoutes.js";
+import pptRoutes from "./routes/pptRoutes.js";
+
+
 
 dotenv.config()
 
@@ -21,6 +24,7 @@ app.use('/api', chatRoutes)
 app.use("/api", imageRoutes);
 app.use("/api", intentRoutes);
 app.use("/api", historyRoutes);
+app.use("/api", pptRoutes);
 
 const PORT = process.env.PORT || 5002
 

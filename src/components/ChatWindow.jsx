@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ChatInput from "./ChatInput";
 import { useTheme } from "../context/ThemeContext";
+import PPTPreview from "./PPTPreview";
 
 function TypingLoader() {
   return (
@@ -191,6 +192,17 @@ function renderMarkdown(text) {
 function ChatBubble({ message }) {
   const { isDark } = useTheme();
   const isUser = message.role === "user";
+
+  if (message.type === "ppt") return <PPTPreview message={message} />;
+
+  if (message.type === "ppt-loading") return (
+    <div className="flex justify-start px-4 md:px-6">
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-800 border border-gray-700">
+        <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-gray-300">{message.content}</p>
+      </div>
+    </div>
+  );
 
   // Image bubble
   if (message.type === "image") return <ImageBubble message={message} />;
