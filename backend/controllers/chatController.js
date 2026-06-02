@@ -2,10 +2,9 @@ import { streamGeminiResponse } from '../services/geminiService.js'
 
 export async function handleChat(req, res) {
   try {
-    const { messages, message } = req.body
+    const { messages, message, image } = req.body
 
     const input = messages && Array.isArray(messages) ? messages : message
-
     if (!input) return res.status(400).json({ error: 'Message required' })
 
     res.setHeader('Content-Type', 'text/event-stream')
@@ -13,7 +12,7 @@ export async function handleChat(req, res) {
     res.setHeader('Transfer-Encoding', 'chunked')
     res.setHeader('Access-Control-Allow-Origin', '*')
 
-    await streamGeminiResponse(input, (chunk) => {
+    await streamGeminiResponse(input, image || null, (chunk) => {
       res.write(`data: ${JSON.stringify({ token: chunk })}\n\n`)
     })
 

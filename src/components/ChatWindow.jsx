@@ -234,8 +234,16 @@ function ChatBubble({ message }) {
 
   if (isUser) return (
     <div className="flex justify-end px-4 md:px-6">
-      <div className="max-w-[85%] md:max-w-[65%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-violet-600 text-white text-sm leading-relaxed whitespace-pre-wrap">
-        {message.content}
+      <div className="max-w-[85%] md:max-w-[65%] flex flex-col items-end gap-2">
+        {message.image && (
+          <img src={message.image} alt="uploaded"
+            className="rounded-xl max-w-[240px] border border-violet-400/30" />
+        )}
+        {message.content && (
+          <div className="px-4 py-2.5 rounded-2xl rounded-br-sm bg-violet-600 text-white text-sm leading-relaxed whitespace-pre-wrap">
+            {message.content}
+          </div>
+        )}
       </div>
     </div>
   );

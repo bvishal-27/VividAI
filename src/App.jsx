@@ -123,10 +123,15 @@ function AppContent() {
     }
   }, [sessions, userId]);
 
-  const handleSend = useCallback(async (text) => {
+  const handleSend = useCallback(async (text, image = null) => {
     const sessionId = activeSessionId;
     const prevMessages = activeSession?.messages ?? [];
-    const userMessage = { id: Date.now(), role: "user", content: text };
+    const userMessage = {
+      id: Date.now(),
+      role: "user",
+      content: text,
+      image: image ? image.preview : null, // store preview for display
+    };
 
     let newTitle = activeSession?.title;
     const isFirst = prevMessages.length === 0;
@@ -213,7 +218,7 @@ function AppContent() {
       const apiMessages = [...prevMessages.filter((m) => m.content && !m.isError && m.type !== "image"), { role: "user", content: text }];
       const response = await fetch(`${API}/chat`, {
         method: "POST", headers,
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, image: image || null }),
       });
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
