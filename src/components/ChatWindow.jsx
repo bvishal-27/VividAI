@@ -3,6 +3,23 @@ import ChatInput from "./ChatInput";
 import { useTheme } from "../context/ThemeContext";
 import PPTPreview from "./PPTPreview";
 
+function CopyFullButton({ text }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg transition-all
+        ${copied
+          ? "bg-green-900/50 text-green-400 border border-green-700"
+          : "text-gray-500 hover:text-gray-300 hover:bg-gray-800 border border-transparent hover:border-gray-700"
+        }`}>
+      {copied
+        ? <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Copied</>
+        : <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-4 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>Copy response</>
+      }
+    </button>
+  );
+}
+
 function TypingLoader() {
   return (
     <div className="flex items-end gap-1.5 px-6 py-3">
@@ -236,12 +253,18 @@ function ChatBubble({ message }) {
           {renderMarkdown(message.content)}
           {message.streaming && <span className="inline-block w-0.5 h-3.5 ml-0.5 bg-violet-400 align-middle animate-pulse" />}
         </div>
+        {/* Action buttons — shown after streaming done */}
+        {!message.streaming && (
+          <div className="pl-8 flex items-center gap-2 mt-2">
+            <CopyFullButton text={message.content} />
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export default function ChatWindow({ messages, isStreaming, onSend, onToggleSidebar }) {
+export default function ChatWindow({ messages, isStreaming, onSend, onToggleSidebar, onRegenerate }) {
   const { isDark } = useTheme();
   const bottomRef = useRef(null);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -264,8 +287,34 @@ export default function ChatWindow({ messages, isStreaming, onSend, onToggleSide
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/20">
               <span className="text-white font-bold text-2xl">V</span>
             </div>
-            <p className="text-xl font-semibold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent mb-1">VividAI</p>
-            <p className={`text-sm ${isDark ? "text-gray-500" : "text-gray-400"}`}>Ask me anything or generate an image.</p>
+            <p className="text-xl font-semibold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent mb-1">VividAI</p>            <p className={`text-sm mb-8 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+              Ask me anything or try one of these:
+            </p>
+
+            {/* Prompt templates */}
+            <div className="grid grid-cols-2 gap-3 w-full max-w-lg">
+              {[
+                { icon: "💬", label: "Explain a concept", prompt: "Explain how the internet works in simple terms" },
+                { icon: "💻", label: "Write code", prompt: "Write a REST API in Node.js with Express" },
+                { icon: "🖼️", label: "Generate image", prompt: "Generate an image of a futuristic city at night" },
+                { icon: "📊", label: "Create PPT", prompt: "Create a ppt on artificial intelligence" },
+                { icon: "🐛", label: "Debug code", prompt: "Help me debug my JavaScript async/await code" },
+                { icon: "📝", label: "Write content", prompt: "Write a professional LinkedIn bio for a developer" },
+              ].map((t) => (
+                <button key={t.label} onClick={() => onSend(t.prompt)}
+                  className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-150 hover:scale-[1.02]
+                    ${isDark
+                      ? "bg-gray-900 border-gray-700 hover:border-violet-500 hover:bg-gray-800"
+                      : "bg-gray-50 border-gray-200 hover:border-violet-400 hover:bg-gray-100"
+                    }`}>
+                  <span className="text-lg">{t.icon}</span>
+                  <div>
+                    <p className={`text-xs font-semibold ${isDark ? "text-gray-200" : "text-gray-700"}`}>{t.label}</p>
+                    <p className={`text-[11px] mt-0.5 line-clamp-1 ${isDark ? "text-gray-500" : "text-gray-400"}`}>{t.prompt}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           messages.map((msg) => <ChatBubble key={msg.id} message={msg} />)

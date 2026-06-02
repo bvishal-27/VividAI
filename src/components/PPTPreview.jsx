@@ -73,6 +73,7 @@ export default function PPTPreview({ message }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const { isDark } = useTheme();
   const { slides, filename, fileData } = message;
+  if (!slides || !filename || !fileData) return null;
 
   const handleDownload = () => {
     const a = document.createElement("a");
@@ -94,7 +95,7 @@ export default function PPTPreview({ message }) {
 
         <div className="pl-8">
           <p className={`text-sm mb-3 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-            ✅ Your PPT on <span className="text-violet-400 font-semibold">"{filename.replace(/_/g, " ").replace(".pptx", "")}"</span> is ready!
+            ✅ Your PPT on <span className="text-violet-400 font-semibold">"{(filename || "").replace(/_/g, " ").replace(".pptx", "")}"</span> is ready!
             Preview all {slides.length} slides below, then download.
           </p>
 

@@ -273,6 +273,11 @@ function AppContent() {
         onSend={handleSend}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen((p) => !p)}
+        onRegenerate={() => {
+          const msgs = activeSession?.messages ?? [];
+          const lastUser = [...msgs].reverse().find((m) => m.role === "user");
+          if (lastUser) handleSend(lastUser.content);
+        }}
       />
     </div>
   );
