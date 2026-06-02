@@ -26,25 +26,32 @@ function IconImage() {
   );
 }
 
+function IconMic({ recording }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill={recording ? "currentColor" : "none"} viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+    </svg>
+  );
+}
+
 export default function ChatInput({ onSend, disabled = false }) {
   const [value, setValue] = useState("");
-  const [image, setImage] = useState(null); // { base64, mimeType, preview }
+  const [image, setImage] = useState(null);
+  const [recording, setRecording] = useState(false);
   const { isDark } = useTheme();
   const fileRef = useRef(null);
   const textareaRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) return;
-
-    // 5mb limit
     if (file.size > 5 * 1024 * 1024) {
       alert("Image too large. Please select an image under 5MB.");
       e.target.value = "";
       return;
     }
-
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = reader.result.split(",")[1];
@@ -54,22 +61,43 @@ export default function ChatInput({ onSend, disabled = false }) {
     e.target.value = "";
   };
 
+  const toggleVoice = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input not supported in this browser. Try Chrome or Safari.");
+      return;
+    }
+    if (recording) {
+      recognitionRef.current?.stop();
+      setRecording(false);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognitionRef.current = recognition;
+    recognition.onstart = () => setRecording(true);
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results).map((r) => r[0].transcript).join("");
+      setValue(transcript);
+    };
+    recognition.onend = () => setRecording(false);
+    recognition.onerror = () => setRecording(false);
+    recognition.start();
+  };
+
   const submit = () => {
     const trimmed = value.trim();
     if ((!trimmed && !image) || disabled) return;
     onSend(trimmed || "What is in this image?", image);
     setValue("");
     setImage(null);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      submit();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
   };
 
   return (
@@ -83,7 +111,7 @@ export default function ChatInput({ onSend, disabled = false }) {
       {image && (
         <div className="px-3 pt-3 flex items-start gap-2">
           <div className="relative shrink-0">
-            <img src={image.preview} alt="upload preview"
+            <img src={image.preview} alt="preview"
               className="w-16 h-16 rounded-lg object-cover border border-gray-600" />
             <button onClick={() => setImage(null)}
               className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] hover:bg-red-400">
@@ -91,31 +119,48 @@ export default function ChatInput({ onSend, disabled = false }) {
             </button>
           </div>
           <div className="flex flex-col gap-1">
-            <p className={`text-xs font-medium ${isDark ? "text-gray-300" : "text-gray-600"}`}>
-              Image attached
-            </p>
+            <p className={`text-xs font-medium ${isDark ? "text-gray-300" : "text-gray-600"}`}>Image attached</p>
             <p className={`text-[11px] ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-              Try: "describe", "read text", "find bugs", "identify", "what breed", "translate", "solve this", "analyze chart"
+              Try: "describe", "read text", "find bugs", "identify", "translate"
             </p>
           </div>
         </div>
       )}
 
+      {/* Recording indicator */}
+      {recording && (
+        <div className="px-3 pt-2 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <p className="text-xs text-red-400 font-medium">Listening... speak now</p>
+        </div>
+      )}
+
       {/* Input row */}
       <div className="flex items-end gap-2 px-3 py-2">
-        {/* Image upload button */}
+
+        {/* Image button */}
         <button onClick={() => fileRef.current?.click()} disabled={disabled}
           className={`p-1.5 rounded-lg transition-colors shrink-0
-            ${isDark ? "text-gray-400 hover:text-white hover:bg-gray-700" : "text-gray-400 hover:text-gray-700 hover:bg-gray-200"}
-            ${image ? "text-violet-400" : ""}`}>
+            ${image ? "text-violet-400" : isDark ? "text-gray-400 hover:text-white hover:bg-gray-700" : "text-gray-400 hover:text-gray-700 hover:bg-gray-200"}`}>
           <IconImage />
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
 
+        {/* Mic button */}
+        <button onClick={toggleVoice} disabled={disabled}
+          className={`p-1.5 rounded-lg transition-colors shrink-0
+            ${recording
+              ? "text-red-400 bg-red-900/30 border border-red-700"
+              : isDark ? "text-gray-400 hover:text-white hover:bg-gray-700" : "text-gray-400 hover:text-gray-700 hover:bg-gray-200"
+            }`}>
+          <IconMic recording={recording} />
+        </button>
+
+        {/* Textarea */}
         <textarea ref={textareaRef}
           className={`flex-1 bg-transparent resize-none text-sm outline-none max-h-36 leading-relaxed py-0.5
             ${isDark ? "text-gray-100 placeholder-gray-600" : "text-gray-900 placeholder-gray-400"}`}
-          placeholder={image ? "Ask anything: describe, read text, find bugs, identify, translate..." : disabled ? "VividAI is thinking…" : "Message VividAI…"}
+          placeholder={recording ? "Listening..." : image ? "Ask anything about this image..." : disabled ? "VividAI is thinking…" : "Message VividAI…"}
           rows={1}
           value={value}
           disabled={disabled}
@@ -127,6 +172,7 @@ export default function ChatInput({ onSend, disabled = false }) {
           onKeyDown={handleKeyDown}
         />
 
+        {/* Send button */}
         <button onClick={submit} disabled={disabled || (!value.trim() && !image)}
           className="p-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-colors shrink-0">
           {disabled ? <IconSpinner /> : <IconSend />}
