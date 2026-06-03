@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { SignedIn, SignedOut, RedirectToSignIn, useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import Sidebar from "./components/Sidebar";
 import ChatWindow from "./components/ChatWindow";
 import { useTheme } from "./context/ThemeContext";
@@ -290,10 +290,5 @@ function AppContent() {
 }
 
 export default function App() {
-  return (
-    <>
-      <SignedOut><RedirectToSignIn /></SignedOut>
-      <SignedIn><AppContent /></SignedIn>
-    </>
-  );
+  return <AppContent />;
 }
