@@ -104,7 +104,7 @@ function Hero() {
         <h1 className="text-6xl md:text-8xl lg:text-9xl font-black leading-[0.9] tracking-tight mb-8">
           <span className="text-white block">Ask</span>
           <span className="bg-gradient-to-r from-violet-400 via-fuchsia-300 to-cyan-400 bg-clip-text text-transparent block min-h-[1.1em]">
-            {typed}<span className="animate-pulse text-violet-400">|</span>
+            {typed}<span className="animate-pulse text-violet-400"></span>
           </span>
         </h1>
       </div>

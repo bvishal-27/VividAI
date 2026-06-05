@@ -76,7 +76,7 @@ function ImageBubble({ message }) {
 
   if (!message.imageData) {
     return (
-      <div className="flex justify-start px-4 md:px-6">
+      <div className="flex justify-start px-4 md:px-6 bubble-animate">
         <div className="w-full max-w-[95%] md:max-w-[82%]">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
@@ -98,7 +98,7 @@ function ImageBubble({ message }) {
   }
 
   return (
-    <div className="flex justify-start px-4 md:px-6">
+    <div className="flex justify-start px-4 md:px-6 bubble-animate">
       <div className="w-full max-w-[95%] md:max-w-[82%]">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
@@ -213,7 +213,7 @@ function ChatBubble({ message }) {
   if (message.type === "ppt") return <PPTPreview message={message} />;
 
   if (message.type === "ppt-loading") return (
-    <div className="flex justify-start px-4 md:px-6">
+    <div className="flex justify-start px-4 md:px-6 bubble-animate">
       <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-800 border border-gray-700">
         <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-sm text-gray-300">{message.content}</p>
@@ -225,7 +225,7 @@ function ChatBubble({ message }) {
   if (message.type === "image") return <ImageBubble message={message} />;
 
   if (message.isError) return (
-    <div className="flex justify-start px-4 md:px-6">
+    <div className="flex justify-start px-4 md:px-6 bubble-animate">
       <div className="max-w-[85%] md:max-w-[70%] px-4 py-3 rounded-2xl text-sm bg-red-950 border border-red-800 text-red-300">{message.content}</div>
     </div>
   );
@@ -233,7 +233,7 @@ function ChatBubble({ message }) {
   if (message.streaming && message.content === "") return <TypingLoader />;
 
   if (isUser) return (
-    <div className="flex justify-end px-4 md:px-6">
+    <div className="flex justify-end px-4 md:px-6 bubble-animate">
       <div className="max-w-[85%] md:max-w-[65%] flex flex-col items-end gap-2">
         {message.image && (
           <img src={message.image} alt="uploaded"
@@ -257,7 +257,7 @@ function ChatBubble({ message }) {
   );
 
   return (
-    <div className="flex justify-start px-4 md:px-6">
+    <div className="flex justify-start px-4 md:px-6 bubble-animate">
       <div className="w-full max-w-[95%] md:max-w-[82%]">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
@@ -280,21 +280,42 @@ function ChatBubble({ message }) {
   );
 }
 
-export default function ChatWindow({ messages, isStreaming, onSend, onToggleSidebar, onRegenerate }) {
+export default function ChatWindow({ messages, isStreaming, onSend, onToggleSidebar, onRegenerate, chatTitle }) {
   const { isDark } = useTheme();
   const bottomRef = useRef(null);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   return (
-    <main className={`flex flex-col flex-1 min-w-0 transition-colors duration-200 ${isDark ? "bg-gray-950" : "bg-white"}`}>
-      <div className={`flex items-center gap-3 px-4 py-3 border-b ${isDark ? "border-gray-800" : "border-gray-200"}`}>
+    <main className={`flex flex-col flex-1 min-w-0 transition-colors duration-200 ${isDark ? "bg-[#080810]" : "bg-white"}`}>
+      <style>{`
+        @keyframes bubbleIn {
+          from { opacity: 0; transform: translateY(12px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .bubble-animate { animation: bubbleIn 0.3s ease forwards; }
+      `}</style>
+      {/* Header */}
+      <div className={`flex items-center gap-3 px-4 py-3 border-b ${isDark ? "border-white/5" : "border-gray-200"}`}>
         <button onClick={onToggleSidebar}
-          className={`p-2 rounded-lg transition-colors ${isDark ? "hover:bg-gray-800 text-gray-400 hover:text-white" : "hover:bg-gray-100 text-gray-500 hover:text-gray-900"}`}>
+          className={`p-2 rounded-lg transition-colors shrink-0 ${isDark ? "hover:bg-white/5 text-gray-400 hover:text-white" : "hover:bg-gray-100 text-gray-500 hover:text-gray-900"}`}>
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
         </button>
-        <span className="font-semibold text-sm bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">VividAI</span>
+
+        {/* Chat title */}
+        <span className={`text-sm font-semibold truncate flex-1 ${isDark ? "text-gray-200" : "text-gray-800"}`}>
+          {chatTitle && chatTitle !== "New Chat" ? chatTitle : (
+            <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">VividAI</span>
+          )}
+        </span>
+
+        {/* Gemini badge */}
+        <div className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium shrink-0
+          ${isDark ? "border-violet-500/20 bg-violet-500/8 text-violet-400" : "border-violet-300 bg-violet-50 text-violet-600"}`}>
+          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse"/>
+          Gemini 2.5 Flash
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto py-4 md:py-6 space-y-4 md:space-y-5">

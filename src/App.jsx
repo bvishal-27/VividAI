@@ -277,6 +277,7 @@ function AppContent() {
         messages={activeSession?.messages ?? []}
         isStreaming={activeSession?.isStreaming ?? false}
         onSend={handleSend}
+        chatTitle={activeSession?.title ?? "New Chat"}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen((p) => !p)}
         onRegenerate={() => {
